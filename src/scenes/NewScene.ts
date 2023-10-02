@@ -70,7 +70,6 @@ export class NewScene {
 
   async createRandomTile() {
     const textures = await loadTextures();
-    console.log(textures);
     const tile = new MahjongTile(this.scene, textures);
     tile.getMesh().position.y = 0.1;
     tile.setRandomTexture();

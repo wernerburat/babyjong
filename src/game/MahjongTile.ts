@@ -6,42 +6,58 @@ import {
   ShaderMaterial,
   Effect,
   ShaderStore,
+  UniformBuffer,
+  ShaderLanguage,
+  TextureSampler,
+  Constants,
 } from "@babylonjs/core";
 
-Effect.ShadersStore["customVertexShader"] = `
-    precision highp float;
-    attribute vec3 position;
-    attribute vec2 uv;
-    uniform mat4 worldViewProjection;
-    varying vec2 vUV;
+ShaderStore.ShadersStoreWGSL["customVertexShader"] = `
+    #include<sceneUboDeclaration>
+    #include<meshUboDeclaration>
 
-    attribute vec3 normal;
-    varying vec3 vNormal;
+    attribute position : vec3<f32>;
+    attribute normal : vec3<f32>;
+    attribute uv: vec2<f32>;
 
-    void main() {
-        vUV = uv;
-        vec4 p = vec4(position, 1.);
-        vNormal = normal;
-        gl_Position = worldViewProjection * p;
+    varying vNormal : vec3<f32>;
+    varying vUV : vec2<f32>;
+
+    struct MyUBO {
+        scale: f32,
+    };
+
+    var<uniform> myUBO: MyUBO;
+
+    @vertex
+    fn main(input : VertexInputs) -> FragmentInputs {
+        vertexOutputs.position = scene.viewProjection * mesh.world * vec4<f32>(vertexInputs.position * vec3<f32>(myUBO.scale), 1.0);
+        vertexOutputs.vNormal = vertexInputs.normal;
+        vertexOutputs.vUV = vertexInputs.uv;
     }
 `;
-Effect.ShadersStore["customFragmentShader"] = `
-    precision highp float;
-    varying vec3 vNormal;
-    uniform sampler2D frontTexture;
-    uniform sampler2D tileTexture;
+ShaderStore.ShadersStoreWGSL["customFragmentShader"] = `
+    uniform vColor : array<vec4<f32>, 2>;
 
-    void main() {
-        vec4 frontColor = texture2D(frontTexture, vUV);
-        vec4 tileColor = texture2D(tileTexture, vUV);
+    varying vNormal : vec3<f32>;
+    varying vUV : vec2<f32>;
 
-        // Use a multiplier based on the normal. If Y component of normal is 1, we're on the top face.
-        float faceMultiplier = (vNormal.y > 0.9) ? 1.0 : 0.0;
+    var frontTexture : texture_2d<f32>;
+    var tileTexture : texture_2d<f32>;
+    var mySampler : sampler;
 
-        // Mix the colors based on the multiplier
-        vec4 finalColor = mix(frontColor, tileColor, tileColor.a * faceMultiplier);
+    @fragment
+    fn main(input : FragmentInputs) -> FragmentOutputs {
+            let frontColor : vec4<f32> = textureSample(frontTexture, mySampler, fragmentInputs.vUV);
+            let tileColor : vec4<f32> = textureSample(tileTexture, mySampler, fragmentInputs.vUV);
 
-        gl_FragColor = finalColor;
+            // Use a multiplier based on the normal. If Y component of normal is close to 1, we're on the top face.
+            let faceMultiplier : f32 = select(0.0, 1.0, fragmentInputs.vNormal.y > 0.8);
+
+            // Mix the colors based on the multiplier
+            let finalColor : vec4<f32> = mix(frontColor, tileColor, tileColor.a * faceMultiplier);
+
+            fragmentOutputs.color = finalColor * uniforms.vColor[1];
     }
 `;
 
@@ -60,13 +76,25 @@ export class MahjongTile {
   private scene: Scene;
   private textures: { [key: string]: any };
   private shaderMaterial: ShaderMaterial;
+  private myUBO: UniformBuffer;
 
   constructor(scene: Scene, textures: { [key: string]: any }) {
     this.scene = scene;
     this.textures = textures;
+    this.myUBO = this.createUBO();
     this.tile = this.createTile();
     this.shaderMaterial = this.createShaderMaterial();
+
     this.setFrontTexture();
+  }
+
+  private createUBO(): UniformBuffer {
+    const myUBO = new UniformBuffer(this.scene.getEngine());
+    myUBO.addUniform("scale", 1.0);
+    myUBO.updateFloat("scale", 3);
+    myUBO.update();
+
+    return myUBO;
   }
 
   private createTile(): Mesh {
@@ -87,10 +115,25 @@ export class MahjongTile {
   }
 
   private createShaderMaterial(): ShaderMaterial {
-    const shaderMaterial = new ShaderMaterial("custom", this.scene, "custom", {
-      attributes: ["position", "normal", "uv"],
-      uniforms: ["worldViewProjection", "frontTexture", "tileTexture"],
-    });
+    const shaderMaterial = new ShaderMaterial(
+      "custom",
+      this.scene,
+      { vertex: "custom", fragment: "custom" },
+      {
+        attributes: ["position", "normal", "uv"],
+        uniformBuffers: ["Scene", "Mesh"],
+        shaderLanguage: ShaderLanguage.WGSL,
+      }
+    );
+    shaderMaterial.setFloats("vColor", [1, 1, 1, 1, 1, 1, 1, 1]);
+    shaderMaterial.setUniformBuffer("myUBO", this.myUBO);
+
+    const sampler = new TextureSampler();
+    sampler.setParameters(); // Use default values
+    sampler.samplingMode = Constants.TEXTURE_NEAREST_SAMPLINGMODE;
+
+    shaderMaterial.setTextureSampler("mySampler", sampler);
+
     return shaderMaterial;
   }
 
