@@ -1,6 +1,13 @@
 <template>
   <div class="container">
     <h3>Mes boules</h3>
+    <div ref="loader" id="loader">
+      <p>sa charges...</p>
+      <div id="loadingContainer">
+        <div ref="loadingBar" id="loadingBar"></div>
+      </div>
+      <p ref="percentLoaded" id="percentLoaded">25%</p>
+    </div>
     <canvas ref="bjsCanvas"></canvas>
   </div>
 </template>
@@ -10,15 +17,27 @@ import { ref, onMounted } from "@vue/runtime-core";
 import { NewScene } from "../scenes/NewScene";
 import { WebGPUEngine, HavokPlugin } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
+import { CustomLoadingScreen } from "../scenes/CustomLoadingScreen";
 
 const bjsCanvas = ref(null);
+const loader = ref<HTMLElement>();
+const loadingBar = ref<HTMLElement>();
+const percentLoaded = ref<HTMLElement>();
 
 onMounted(() => {
   const engine = new WebGPUEngine(bjsCanvas.value!);
+  const loadingScreen = new CustomLoadingScreen(
+    loadingBar.value!,
+    percentLoaded.value!,
+    loader.value!
+  );
+  engine.loadingScreen = loadingScreen;
+  engine.displayLoadingUI();
+
   engine.initAsync().then(async () => {
     const havokInstance = await HavokPhysics();
     const hk = new HavokPlugin(true, havokInstance);
-    new NewScene(engine, hk);
+    new NewScene(engine, hk, bjsCanvas.value!);
   });
 });
 </script>
@@ -34,5 +53,48 @@ onMounted(() => {
 canvas {
   width: 70%;
   height: 70%;
+  border: 1px solid black;
+  border-radius: 10px;
+}
+
+#loader {
+  width: 100%;
+  height: 100%;
+  background: slategray;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#loaded {
+  width: 100%;
+  height: 100%;
+  background: slategray;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+#loadingContainer {
+  width: 50%;
+  height: 20px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#loadingBar {
+  width: 0%;
+  height: 100%;
+  background: green;
+  border-radius: 10px;
+  transition: width 1s ease;
 }
 </style>
