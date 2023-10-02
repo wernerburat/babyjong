@@ -72,7 +72,7 @@ export class NewScene {
     const textures = await loadTextures();
     console.log(textures);
     const tile = new MahjongTile(this.scene, textures);
-
+    tile.getMesh().position.y = 0.1;
     tile.setRandomTexture();
   }
 
@@ -121,28 +121,21 @@ export class NewScene {
   CreateCamera(): void {
     this.camera = new ArcRotateCamera(
       "camera",
-      -Math.PI / 2, // Alpha - Clockwise
-      Math.PI / 2, // Beta - Counter Clockwise
-      5,
+      -Math.PI / 5, // Alpha - Clockwise
+      Math.PI / 5, // Beta - Counter Clockwise
+      2,
       new Vector3(0, 0, 0),
       this.scene
     );
     this.camera.attachControl(this.canvas, true);
-    this.camera.setPosition(new Vector3(0, 5, -10));
     this.camera.wheelPrecision = 25;
-
-    this.camera.minZ = 0.3;
-    this.camera.upperRadiusLimit = 20;
-    this.camera.lowerRadiusLimit = 2;
-
-    this.camera.fov = 0.8;
 
     this.camera.useBouncingBehavior = true;
     this.camera.bouncingBehavior!.transitionDuration = 250;
 
-    this.camera.useAutoRotationBehavior = true;
-    this.camera.autoRotationBehavior!.idleRotationSpeed = 0.3;
-    this.camera.autoRotationBehavior!.idleRotationWaitTime = 3000;
-    this.camera.autoRotationBehavior!.idleRotationSpinupTime = 250;
+    this.camera.useAutoRotationBehavior = false;
+    //this.camera.autoRotationBehavior!.idleRotationSpeed = 0.3;
+    //this.camera.autoRotationBehavior!.idleRotationWaitTime = 3000;
+    //this.camera.autoRotationBehavior!.idleRotationSpinupTime = 250;
   }
 }

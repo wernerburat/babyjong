@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <h3>Mes boules</h3>
+    <h3>Mon jogne</h3>
     <div ref="loader" id="loader">
       <p>sa charges...</p>
       <div id="loadingContainer">
