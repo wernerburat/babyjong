@@ -21,7 +21,7 @@ import HavokPhysics from "@babylonjs/havok";
 import { CustomLoadingScreen } from "../scenes/CustomLoadingScreen";
 import { MahjongTile } from "../game/MahjongTile";
 
-const bjsCanvas = ref(null);
+const bjsCanvas = ref<HTMLCanvasElement | null>(null);
 const loader = ref<HTMLElement>();
 const loadingBar = ref<HTMLElement>();
 const percentLoaded = ref<HTMLElement>();

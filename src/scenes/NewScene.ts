@@ -13,6 +13,7 @@ import {
   CubeTexture,
   PBRMaterial,
   Texture,
+  Animation,
 } from "@babylonjs/core";
 import { CustomLoadingScreen } from "./CustomLoadingScreen";
 import { loadTextures } from "../game/TextureLoader";
@@ -89,6 +90,39 @@ export class NewScene {
       tiles.push(tile);
     }
     this.tiles = tiles;
+  }
+
+  async positionTile(tile: MahjongTile, to: Vector3, speed: number): Promise<void> {
+    return new Promise((resolve, reject) => {;
+      if (!tile) {
+        reject("Tile no existeru");
+      }
+
+      const from = tile.meshes[0].position;
+      const positionAnimation = new Animation(
+        "posAnim",
+        "position",
+        60,
+        Animation.ANIMATIONTYPE_VECTOR3,
+      );
+      const keys = [];
+
+      const frames = 60;
+      keys.push({
+        frame: 0,
+        value: from,
+      });
+
+      keys.push({
+        frame: frames,
+        value: to,
+      });
+
+      positionAnimation.setKeys(keys);
+      this.scene.beginAnimation(tile.meshes[0], 0, frames, false, speed, () => {
+        resolve();
+      });
+    })
   }
 
   CreateCamera(): void {
