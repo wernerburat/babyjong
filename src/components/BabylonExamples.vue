@@ -10,13 +10,14 @@
     </div>
     <canvas ref="bjsCanvas"></canvas>
     <button @click="debug">debug</button>
+    <button @click="move">move</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "@vue/runtime-core";
 import { NewScene } from "../scenes/NewScene";
-import { WebGPUEngine, HavokPlugin } from "@babylonjs/core";
+import { WebGPUEngine, HavokPlugin, Vector3 } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { CustomLoadingScreen } from "../scenes/CustomLoadingScreen";
 import { MahjongTile } from "../game/MahjongTile";
@@ -61,6 +62,23 @@ const debug = () => {
   });
   console.log(scene.value.Tiles);
 };
+
+async function move() {
+  const tiles = scene.value.Tiles;
+  let xPos = -1.5;
+  let zPos = 1.3;
+  let index = 0;
+  tiles.forEach(async (tile: MahjongTile) => {
+    if (index % 14 == 0) {
+      xPos = -1.5;
+      zPos -= 0.3;
+    }
+    xPos += 0.2;
+    const newPos = new Vector3(xPos, 0, zPos);
+    await scene.value.positionTile(tile, newPos, 0.5);
+    index++;
+  });
+}
 </script>
 
 <style scoped>

@@ -92,7 +92,7 @@ export class NewScene {
     this.tiles = tiles;
   }
 
-  async positionTile(tile: MahjongTile, to: Vector3, speed: number): Promise<void> {
+  public async positionTile(tile: MahjongTile, to: Vector3, speed: number): Promise<void> {
     return new Promise((resolve, reject) => {;
       if (!tile) {
         reject("Tile no existeru");
