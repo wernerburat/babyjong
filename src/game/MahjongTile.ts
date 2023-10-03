@@ -10,6 +10,11 @@ import {
   ShaderLanguage,
   TextureSampler,
   Constants,
+  CSG,
+  Vector3,
+  AxesViewer,
+  SceneLoader,
+  StandardMaterial,
 } from "@babylonjs/core";
 
 ShaderStore.ShadersStoreWGSL["customVertexShader"] = `
@@ -72,70 +77,78 @@ ShaderStore.ShadersStoreWGSL["customFragmentShader"] = `
 // }
 
 export class MahjongTile {
-  private tile: Mesh;
+  private tile!: Mesh;
   private scene: Scene;
   private textures: { [key: string]: any };
-  private shaderMaterial: ShaderMaterial;
+  private standardMaterial!: StandardMaterial;
   private myUBO: UniformBuffer;
 
-  constructor(scene: Scene, textures: { [key: string]: any }) {
+  constructor(
+    scene: Scene,
+    textures: { [key: string]: any },
+    importedMesh: Mesh
+  ) {
     this.scene = scene;
     this.textures = textures;
-    this.myUBO = this.createUBO();
-    this.tile = this.createTile();
-    this.shaderMaterial = this.createShaderMaterial();
+    this.tile = importedMesh;
+    this.tile.position.y = 0.2;
+    this.tile.rotate(Vector3.Left(), Math.PI / 2);
 
+    this.myUBO = this.createUBO();
+    this.shaderMaterial = this.createShaderMaterial();
     this.setFrontTexture();
+    this.setRandomTexture();
   }
+
+  // private async CreateTile(): Promise<void> {
+  //   const tileDepth = 0.2794;
+  //   const tileWidth = 0.1905;
+  //   const tileHeight = 0.0457;
+
+  //   const tileMesh = await this.ImportTileMeshAsync();
+  //   this.tile = tileMesh.createInstance("tile");
+  // }
 
   private createUBO(): UniformBuffer {
     const myUBO = new UniformBuffer(this.scene.getEngine());
-    myUBO.addUniform("scale", 1.0);
-    myUBO.updateFloat("scale", 3);
+    myUBO.addUniform("scale", 1);
+    myUBO.updateFloat("scale", 1);
     myUBO.update();
 
     return myUBO;
   }
 
-  private createTile(): Mesh {
-    const tileDepth = 0.1905;
-    const tileWidth = 0.2794;
-    const tileHeight = 0.0457;
+  // private createTile(): Mesh {
+  //   const tileDepth = 0.2794;
+  //   const tileWidth = 0.1905;
+  //   const tileHeight = 0.0457;
 
-    const tile = MeshBuilder.CreateBox(
-      "tile",
-      { width: tileWidth, height: tileHeight, depth: tileDepth },
-      this.scene
-    );
+  //   return tile;
+  // }
 
-    // Rotate the tile to lay it flat
-    //tile.rotation.x = Math.PI / 2; // Rotate around the X axis by 90 degrees
+  // private createShaderMaterial(): ShaderMaterial {
+  //   console.log("Creating shader material");
+  //   const shaderMaterial = new ShaderMaterial(
+  //     "custom",
+  //     this.scene,
+  //     { vertex: "custom", fragment: "custom" },
+  //     {
+  //       attributes: ["position", "normal", "uv"],
+  //       uniformBuffers: ["Scene", "Mesh"],
+  //       shaderLanguage: ShaderLanguage.WGSL,
+  //     }
+  //   );
+  //   shaderMaterial.setFloats("vColor", [1, 1, 1, 1, 1, 1, 1, 1]);
+  //   shaderMaterial.setUniformBuffer("myUBO", this.myUBO);
 
-    return tile;
-  }
+  //   const sampler = new TextureSampler();
+  //   sampler.setParameters(); // Use default values
+  //   sampler.samplingMode = Constants.TEXTURE_NEAREST_SAMPLINGMODE;
 
-  private createShaderMaterial(): ShaderMaterial {
-    const shaderMaterial = new ShaderMaterial(
-      "custom",
-      this.scene,
-      { vertex: "custom", fragment: "custom" },
-      {
-        attributes: ["position", "normal", "uv"],
-        uniformBuffers: ["Scene", "Mesh"],
-        shaderLanguage: ShaderLanguage.WGSL,
-      }
-    );
-    shaderMaterial.setFloats("vColor", [1, 1, 1, 1, 1, 1, 1, 1]);
-    shaderMaterial.setUniformBuffer("myUBO", this.myUBO);
+  //   shaderMaterial.setTextureSampler("mySampler", sampler);
 
-    const sampler = new TextureSampler();
-    sampler.setParameters(); // Use default values
-    sampler.samplingMode = Constants.TEXTURE_NEAREST_SAMPLINGMODE;
-
-    shaderMaterial.setTextureSampler("mySampler", sampler);
-
-    return shaderMaterial;
-  }
+  //   return shaderMaterial;
+  // }
 
   public setFrontTexture(): void {
     this.shaderMaterial.setTexture(

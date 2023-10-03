@@ -13,6 +13,7 @@
     "@babylonjs/gui": "^6.22.1",
     "@babylonjs/havok": "^1.2.0",
     "@babylonjs/inspector": "^6.22.1",
+    "@babylonjs/loaders": "^6.22.1",
     "vue": "^3.3.4"
   },
   "devDependencies": {

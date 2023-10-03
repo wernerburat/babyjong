@@ -8,15 +8,19 @@ import {
   PhysicsAggregate,
   PhysicsShapeType,
   ArcRotateCamera,
+  Mesh,
+  SceneLoader,
 } from "@babylonjs/core";
 import { CustomLoadingScreen } from "./CustomLoadingScreen";
 import { loadTextures } from "../game/TextureLoader";
 import { MahjongTile } from "../game/MahjongTile";
+import { GLTFFileLoader } from "@babylonjs/loaders";
 
 export class NewScene {
   scene!: Scene;
   loadingScreen!: CustomLoadingScreen;
   camera!: ArcRotateCamera;
+  cameraTarget!: Mesh;
 
   constructor(
     private engine: WebGPUEngine,
@@ -33,6 +37,10 @@ export class NewScene {
     this.engine.runRenderLoop(() => {
       this.scene.render();
     });
+
+    window.addEventListener("resize", () => {
+      this.engine.resize();
+    });
   }
 
   get sceneInstance() {
@@ -42,6 +50,8 @@ export class NewScene {
   createScene(): Scene {
     const scene = new Scene(this.engine);
     scene.enablePhysics(new Vector3(0, -9.81, 0), this.hk);
+
+    this.createRandomTile();
     this.CreateCamera();
 
     const hemiLight = new HemisphericLight(
@@ -62,17 +72,61 @@ export class NewScene {
       restitution: 0.1,
     });
 
-    this.createRandomTile();
-
     this.engine.hideLoadingUI();
     return scene;
   }
 
+  async CreateTile(): Promise<void> {
+    new GLTFFileLoader();
+    const { meshes } = await SceneLoader.ImportMeshAsync(
+      "",
+      "./models/",
+      "tile.glb"
+    );
+    console.log(meshes[1]);
+    const tileMesh = meshes[0] as Mesh;
+    const tile = new MahjongTile(this.scene, await loadTextures(), tileMesh);
+  }
+
   async createRandomTile() {
-    const textures = await loadTextures();
-    const tile = new MahjongTile(this.scene, textures);
-    tile.getMesh().position.y = 0.1;
-    tile.setRandomTexture();
+    // const textures = await loadTextures();
+    // const tile = new MahjongTile(this.scene, textures);
+    // tile.getMesh().position.y = 0.2;
+    // tile.getMesh().position.x = 0;
+    // tile.setRandomTexture();
+    // this.cameraTarget = tile.getMesh();
+    this.CreateTile();
+  }
+
+  CreateCamera(): void {
+    // https://doc.babylonjs.com/features/featuresDeepDive/cameras/camera_introduction
+    // https://doc.babylonjs.com/img/how_to/camalphabeta.jpg
+
+    const pi = Math.PI;
+    this.camera = new ArcRotateCamera(
+      "camera",
+      // Alpha    Rotation around Y axis    (left and right)  -pi/2 = in front of target   0 = behind target
+      -pi / 2,
+      // Beta     Rotation around X axis    (up and down)      pi/2 = in front of target   0 = above target
+      pi / 5,
+      // Radius   Distance from point of interest
+      2,
+      new Vector3(0, 0, 0),
+      this.scene
+    );
+    this.camera.attachControl(this.canvas, true);
+    this.camera.wheelPrecision = 50;
+
+    // Near-clip plane
+    this.camera.minZ = 0.001;
+
+    this.camera.useBouncingBehavior = true;
+    this.camera.bouncingBehavior!.transitionDuration = 250;
+
+    this.camera.useAutoRotationBehavior = false;
+    //this.camera.autoRotationBehavior!.idleRotationSpeed = 0.3;
+    //this.camera.autoRotationBehavior!.idleRotationWaitTime = 3000;
+    //this.camera.autoRotationBehavior!.idleRotationSpinupTime = 250;
   }
 
   createABunchOfBalls(): void {
@@ -115,26 +169,5 @@ export class NewScene {
     //     this.loadingScreen.updateLoadingUI(loadStatus);
     //   }
     // );
-  }
-
-  CreateCamera(): void {
-    this.camera = new ArcRotateCamera(
-      "camera",
-      -Math.PI / 5, // Alpha - Clockwise
-      Math.PI / 5, // Beta - Counter Clockwise
-      2,
-      new Vector3(0, 0, 0),
-      this.scene
-    );
-    this.camera.attachControl(this.canvas, true);
-    this.camera.wheelPrecision = 25;
-
-    this.camera.useBouncingBehavior = true;
-    this.camera.bouncingBehavior!.transitionDuration = 250;
-
-    this.camera.useAutoRotationBehavior = false;
-    //this.camera.autoRotationBehavior!.idleRotationSpeed = 0.3;
-    //this.camera.autoRotationBehavior!.idleRotationWaitTime = 3000;
-    //this.camera.autoRotationBehavior!.idleRotationSpinupTime = 250;
   }
 }
