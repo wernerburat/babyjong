@@ -19,11 +19,13 @@ import { NewScene } from "../scenes/NewScene";
 import { WebGPUEngine, HavokPlugin } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
 import { CustomLoadingScreen } from "../scenes/CustomLoadingScreen";
+import { MahjongTile } from "../game/MahjongTile";
 
 const bjsCanvas = ref(null);
 const loader = ref<HTMLElement>();
 const loadingBar = ref<HTMLElement>();
 const percentLoaded = ref<HTMLElement>();
+const scene = ref();
 
 onMounted(() => {
   const engine = new WebGPUEngine(bjsCanvas.value!);
@@ -38,13 +40,26 @@ onMounted(() => {
   engine.initAsync().then(async () => {
     const havokInstance = await HavokPhysics();
     const hk = new HavokPlugin(true, havokInstance);
-    new NewScene(engine, hk, bjsCanvas.value!);
+    scene.value = new NewScene(engine, hk, bjsCanvas.value!);
   });
 });
 
 const debug = () => {
-  // Get the tiles from the scene:
-  console.log("debug");
+  const tiles = scene.value.Tiles;
+  let xPos = -1.5;
+  let zPos = 1.3;
+  let index = 0;
+  tiles.forEach((tile: MahjongTile) => {
+    if (index % 14 == 0) {
+      xPos = -1.5;
+      zPos -= 0.3;
+    }
+    xPos += 0.2;
+    tile.getMesh().position.x = xPos;
+    tile.getMesh().position.z = zPos;
+    index++;
+  });
+  console.log(scene.value.Tiles);
 };
 </script>
 

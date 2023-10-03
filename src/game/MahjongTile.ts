@@ -44,18 +44,17 @@ export class MahjongTile {
     const texture = new Texture(
       getRandomTexturePath(),
       this.scene,
-      true,
+      false,
       false // No invert Y
     );
 
     // Tile face texture
     texture.wAng = Math.PI / 2;
     texture.invertY;
-    const factor = 0.965;
-    texture.uScale = 4.6 * factor;
-    texture.vScale = 4.1 * factor;
-    texture.uOffset = 0.81; // Left-Right
-    texture.vOffset = 0.522; // Up-Down
+    texture.uScale = 4.8; // Left-Right
+    texture.vScale = 4.35; // Up-Down
+    texture.uOffset = 0.48; // Left-Right
+    texture.vOffset = 0.36; // Up-Down
     texture.hasAlpha = true;
 
     // Tile face material
@@ -102,12 +101,12 @@ const getPin8 = (): string => {
 };
 
 const getRandomTexturePath = (): string => {
-  return `./textures/tiles/${textureNames[Math.floor(Math.random() * 40)]}.png`;
+  return `./textures/tiles/${
+    textureNames[Math.floor(Math.random() * textureNames.length)]
+  }.png`;
 };
 const textureNames = [
-  "Back",
   "Chun",
-  "Front",
   "Haku",
   "Hatsu",
   "Man1",

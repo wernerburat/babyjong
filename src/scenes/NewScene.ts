@@ -24,7 +24,7 @@ export class NewScene {
   loadingScreen!: CustomLoadingScreen;
   camera!: ArcRotateCamera;
   cameraTarget!: Mesh;
-  public tiles!: MahjongTile[];
+  tiles!: MahjongTile[];
 
   constructor(
     private engine: WebGPUEngine,
@@ -48,6 +48,10 @@ export class NewScene {
 
   get sceneInstance() {
     return this.scene;
+  }
+
+  get Tiles() {
+    return this.tiles;
   }
 
   createScene(): Scene {
@@ -80,7 +84,11 @@ export class NewScene {
 
   async CreateTiles(): Promise<void> {
     const tiles = [];
-    const tile = new MahjongTile(this.scene);
+    for (let i = 0; i < 98; i++) {
+      const tile = await new MahjongTile(this.scene);
+      tiles.push(tile);
+    }
+    this.tiles = tiles;
   }
 
   CreateCamera(): void {
