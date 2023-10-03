@@ -1,175 +1,140 @@
 import {
   Scene,
-  MeshBuilder,
   Mesh,
-  Texture,
-  ShaderMaterial,
-  Effect,
-  ShaderStore,
-  UniformBuffer,
-  ShaderLanguage,
-  TextureSampler,
-  Constants,
-  CSG,
   Vector3,
-  AxesViewer,
+  PBRMaterial,
+  Texture,
   SceneLoader,
-  StandardMaterial,
+  GlowLayer,
+  MeshUVSpaceRenderer,
+  DecalMapConfiguration,
+  Color3,
 } from "@babylonjs/core";
-
-ShaderStore.ShadersStoreWGSL["customVertexShader"] = `
-    #include<sceneUboDeclaration>
-    #include<meshUboDeclaration>
-
-    attribute position : vec3<f32>;
-    attribute normal : vec3<f32>;
-    attribute uv: vec2<f32>;
-
-    varying vNormal : vec3<f32>;
-    varying vUV : vec2<f32>;
-
-    struct MyUBO {
-        scale: f32,
-    };
-
-    var<uniform> myUBO: MyUBO;
-
-    @vertex
-    fn main(input : VertexInputs) -> FragmentInputs {
-        vertexOutputs.position = scene.viewProjection * mesh.world * vec4<f32>(vertexInputs.position * vec3<f32>(myUBO.scale), 1.0);
-        vertexOutputs.vNormal = vertexInputs.normal;
-        vertexOutputs.vUV = vertexInputs.uv;
-    }
-`;
-ShaderStore.ShadersStoreWGSL["customFragmentShader"] = `
-    uniform vColor : array<vec4<f32>, 2>;
-
-    varying vNormal : vec3<f32>;
-    varying vUV : vec2<f32>;
-
-    var frontTexture : texture_2d<f32>;
-    var tileTexture : texture_2d<f32>;
-    var mySampler : sampler;
-
-    @fragment
-    fn main(input : FragmentInputs) -> FragmentOutputs {
-            let frontColor : vec4<f32> = textureSample(frontTexture, mySampler, fragmentInputs.vUV);
-            let tileColor : vec4<f32> = textureSample(tileTexture, mySampler, fragmentInputs.vUV);
-
-            // Use a multiplier based on the normal. If Y component of normal is close to 1, we're on the top face.
-            let faceMultiplier : f32 = select(0.0, 1.0, fragmentInputs.vNormal.y > 0.8);
-
-            // Mix the colors based on the multiplier
-            let finalColor : vec4<f32> = mix(frontColor, tileColor, tileColor.a * faceMultiplier);
-
-            fragmentOutputs.color = finalColor * uniforms.vColor[1];
-    }
-`;
-
-// void main() {
-//     vec4 frontColor = texture2D(frontTexture, vUV);
-//     vec4 tileColor = texture2D(tileTexture, vUV);
-
-//     float faceMultiplier = (vUV.x < 0.1667) ? 1.0 : 0.0;
-//     vec4 finalColor = mix(frontColor, tileColor, tileColor.a * faceMultiplier);
-
-//     gl_FragColor = finalColor;
-// }
+import { GLTFFileLoader } from "@babylonjs/loaders";
 
 export class MahjongTile {
   private tile!: Mesh;
   private scene: Scene;
-  private textures: { [key: string]: any };
-  private standardMaterial!: StandardMaterial;
-  private myUBO: UniformBuffer;
+  private meshes: Mesh[] = [];
 
-  constructor(
-    scene: Scene,
-    textures: { [key: string]: any },
-    importedMesh: Mesh
-  ) {
+  constructor(scene: Scene) {
     this.scene = scene;
-    this.textures = textures;
-    this.tile = importedMesh;
-    this.tile.position.y = 0.2;
-    this.tile.rotate(Vector3.Left(), Math.PI / 2);
-
-    this.myUBO = this.createUBO();
-    this.shaderMaterial = this.createShaderMaterial();
-    this.setFrontTexture();
-    this.setRandomTexture();
+    this.CreateTile();
   }
 
-  // private async CreateTile(): Promise<void> {
-  //   const tileDepth = 0.2794;
-  //   const tileWidth = 0.1905;
-  //   const tileHeight = 0.0457;
+  async CreateTile(): Promise<void> {
+    new GLTFFileLoader();
+    const { meshes } = await SceneLoader.ImportMeshAsync(
+      "",
+      "./models/",
+      "tile.glb"
+    );
 
-  //   const tileMesh = await this.ImportTileMeshAsync();
-  //   this.tile = tileMesh.createInstance("tile");
-  // }
+    const tileMesh = meshes[0] as Mesh;
+    const tileFace = meshes[2] as Mesh;
+    const tileFaceBackground = tileFace.clone("tileFaceBackground");
 
-  private createUBO(): UniformBuffer {
-    const myUBO = new UniformBuffer(this.scene.getEngine());
-    myUBO.addUniform("scale", 1);
-    myUBO.updateFloat("scale", 1);
-    myUBO.update();
+    this.meshes.push(meshes[0] as Mesh);
+    this.meshes.push(meshes[1] as Mesh);
+    this.meshes.push(meshes[2] as Mesh);
+    this.meshes.push(tileFaceBackground as Mesh);
+    const material = new PBRMaterial("tileMaterial", this.scene);
 
-    return myUBO;
+    const texture = new Texture(
+      getRandomTexturePath(),
+      this.scene,
+      true,
+      false
+    );
+
+    texture.wAng = Math.PI / 2;
+    texture.invertY;
+    const factor = 0.965;
+    texture.uScale = 4.6 * factor;
+    texture.vScale = 4.1 * factor;
+    texture.uOffset = 0.81; // Left-Right
+    texture.vOffset = 0.522;
+    texture.hasAlpha = true;
+
+    material.albedoTexture = texture;
+    material.metallic = 0;
+
+    tileFace.material = material;
+
+    tileMesh.position.y = 0.2;
+    tileMesh.rotate(Vector3.Left(), -Math.PI / 2);
   }
-
-  // private createTile(): Mesh {
-  //   const tileDepth = 0.2794;
-  //   const tileWidth = 0.1905;
-  //   const tileHeight = 0.0457;
-
-  //   return tile;
-  // }
-
-  // private createShaderMaterial(): ShaderMaterial {
-  //   console.log("Creating shader material");
-  //   const shaderMaterial = new ShaderMaterial(
-  //     "custom",
-  //     this.scene,
-  //     { vertex: "custom", fragment: "custom" },
-  //     {
-  //       attributes: ["position", "normal", "uv"],
-  //       uniformBuffers: ["Scene", "Mesh"],
-  //       shaderLanguage: ShaderLanguage.WGSL,
-  //     }
-  //   );
-  //   shaderMaterial.setFloats("vColor", [1, 1, 1, 1, 1, 1, 1, 1]);
-  //   shaderMaterial.setUniformBuffer("myUBO", this.myUBO);
-
-  //   const sampler = new TextureSampler();
-  //   sampler.setParameters(); // Use default values
-  //   sampler.samplingMode = Constants.TEXTURE_NEAREST_SAMPLINGMODE;
-
-  //   shaderMaterial.setTextureSampler("mySampler", sampler);
-
-  //   return shaderMaterial;
-  // }
 
   public setFrontTexture(): void {
-    this.shaderMaterial.setTexture(
-      "frontTexture",
-      new Texture(this.textures["Front"].default, this.scene)
-    );
-    this.tile.material = this.shaderMaterial;
+    // this.material.setTexture(
+    //   "frontTexture",
+    //   new Texture(this.textures["Front"].default, this.scene)
+    // );
+    // this.tile.material = this.shaderMaterial;
   }
 
   public setRandomTexture(): void {
-    const textureKeys = Object.keys(this.textures);
-    const randomKey =
-      textureKeys[Math.floor(Math.random() * textureKeys.length)];
-    this.shaderMaterial.setTexture(
-      "tileTexture",
-      new Texture(this.textures[randomKey].default, this.scene)
-    );
-    this.tile.material = this.shaderMaterial;
+    // const textureKeys = Object.keys(this.textures);
+    // const randomKey =
+    //   textureKeys[Math.floor(Math.random() * textureKeys.length)];
+    // this.shaderMaterial.setTexture(
+    //   "tileTexture",
+    //   new Texture(this.textures[randomKey].default, this.scene)
+    // );
+    // this.tile.material = this.shaderMaterial;
   }
 
   public getMesh(): Mesh {
     return this.tile;
   }
 }
+
+const getPin8 = (): string => {
+  return "./textures/tiles/Pin8.png";
+};
+
+const getRandomTexturePath = (): string => {
+  return `./textures/tiles/${textureNames[Math.floor(Math.random() * 40)]}.png`;
+};
+const textureNames = [
+  "Back",
+  "Chun",
+  "Front",
+  "Haku",
+  "Hatsu",
+  "Man1",
+  "Man2",
+  "Man3",
+  "Man4",
+  "Man5-Dora",
+  "Man5",
+  "Man6",
+  "Man7",
+  "Man8",
+  "Man9",
+  "Nan",
+  "Pei",
+  "Pin1",
+  "Pin2",
+  "Pin3",
+  "Pin4",
+  "Pin5-Dora",
+  "Pin5",
+  "Pin6",
+  "Pin7",
+  "Pin8",
+  "Pin9",
+  "Shaa",
+  "Sou1",
+  "Sou2",
+  "Sou3",
+  "Sou4",
+  "Sou5-Dora",
+  "Sou5",
+  "Sou6",
+  "Sou7",
+  "Sou8",
+  "Sou9",
+  "Ton",
+];
+const textures: { [key: string]: any } = {};

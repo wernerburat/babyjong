@@ -10,6 +10,9 @@ import {
   ArcRotateCamera,
   Mesh,
   SceneLoader,
+  CubeTexture,
+  PBRMaterial,
+  Texture,
 } from "@babylonjs/core";
 import { CustomLoadingScreen } from "./CustomLoadingScreen";
 import { loadTextures } from "../game/TextureLoader";
@@ -32,7 +35,6 @@ export class NewScene {
 
   private initScene() {
     this.scene = this.createScene();
-    this.CreateEnvironment();
 
     this.engine.runRenderLoop(() => {
       this.scene.render();
@@ -51,51 +53,28 @@ export class NewScene {
     const scene = new Scene(this.engine);
     scene.enablePhysics(new Vector3(0, -9.81, 0), this.hk);
 
-    this.createRandomTile();
+    this.CreateGround();
     this.CreateCamera();
+    const tile = new MahjongTile(scene);
 
     const hemiLight = new HemisphericLight(
       "hemiLight",
       new Vector3(0, 1, 0),
-      this.scene
+      scene
     );
 
-    hemiLight.intensity = 0.5;
+    hemiLight.intensity = 0.0;
 
-    const ground = MeshBuilder.CreateGround(
-      "ground",
-      { width: 10, height: 10 },
-      this.scene
+    const envTex = CubeTexture.CreateFromPrefilteredData(
+      "./environment/sky.env",
+      scene
     );
-    const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, {
-      mass: 0,
-      restitution: 0.1,
-    });
+
+    scene.environmentTexture = envTex;
+    scene.createDefaultSkybox(envTex, true, 1000);
 
     this.engine.hideLoadingUI();
     return scene;
-  }
-
-  async CreateTile(): Promise<void> {
-    new GLTFFileLoader();
-    const { meshes } = await SceneLoader.ImportMeshAsync(
-      "",
-      "./models/",
-      "tile.glb"
-    );
-    console.log(meshes[1]);
-    const tileMesh = meshes[0] as Mesh;
-    const tile = new MahjongTile(this.scene, await loadTextures(), tileMesh);
-  }
-
-  async createRandomTile() {
-    // const textures = await loadTextures();
-    // const tile = new MahjongTile(this.scene, textures);
-    // tile.getMesh().position.y = 0.2;
-    // tile.getMesh().position.x = 0;
-    // tile.setRandomTexture();
-    // this.cameraTarget = tile.getMesh();
-    this.CreateTile();
   }
 
   CreateCamera(): void {
@@ -106,12 +85,12 @@ export class NewScene {
     this.camera = new ArcRotateCamera(
       "camera",
       // Alpha    Rotation around Y axis    (left and right)  -pi/2 = in front of target   0 = behind target
-      -pi / 2,
+      -pi / 3,
       // Beta     Rotation around X axis    (up and down)      pi/2 = in front of target   0 = above target
       pi / 5,
       // Radius   Distance from point of interest
-      2,
-      new Vector3(0, 0, 0),
+      1,
+      new Vector3(-0.1, 0, 0.1),
       this.scene
     );
     this.camera.attachControl(this.canvas, true);
@@ -127,6 +106,47 @@ export class NewScene {
     //this.camera.autoRotationBehavior!.idleRotationSpeed = 0.3;
     //this.camera.autoRotationBehavior!.idleRotationWaitTime = 3000;
     //this.camera.autoRotationBehavior!.idleRotationSpinupTime = 250;
+  }
+
+  CreateGround(): void {
+    const ground = MeshBuilder.CreateGround(
+      "ground",
+      { width: 10, height: 10 },
+      this.scene
+    );
+    const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, {
+      mass: 0,
+      restitution: 0.1,
+    });
+
+    const groundMaterial = new PBRMaterial("groundMaterial", this.scene);
+
+    groundMaterial.albedoTexture = new Texture(
+      "./textures/fabric_pattern_05_col_01_1k.jpg",
+      this.scene
+    );
+
+    groundMaterial.bumpTexture = new Texture(
+      "./textures/fabric_pattern_05_nor_gl_1k.jpg",
+      this.scene
+    );
+
+    // groundMaterial.invertNormalMapX = true;
+    // groundMaterial.invertNormalMapY = true;
+
+    groundMaterial.useAmbientOcclusionFromMetallicTextureRed = true;
+    groundMaterial.useRoughnessFromMetallicTextureGreen = true;
+    groundMaterial.useMetallnessFromMetallicTextureBlue = true;
+
+    groundMaterial.metallicTexture = new Texture(
+      "./textures/fabric_pattern_05_arm_1k.jpg",
+      this.scene
+    );
+
+    groundMaterial.roughness = 0.4;
+    groundMaterial.metallic = 0;
+
+    ground.material = groundMaterial;
   }
 
   createABunchOfBalls(): void {
@@ -156,18 +176,5 @@ export class NewScene {
       mass: 1,
       restitution: 0.1,
     });
-  }
-
-  async CreateEnvironment(): Promise<void> {
-    // await SceneLoader.ImportMeshAsync(
-    //   "",
-    //   "./models/",
-    //   "LightingScene.glb",
-    //   this.scene,
-    //   (evt) => {
-    //     const loadStatus = ((evt.loaded * 100) / evt.total).toFixed();
-    //     this.loadingScreen.updateLoadingUI(loadStatus);
-    //   }
-    // );
   }
 }
