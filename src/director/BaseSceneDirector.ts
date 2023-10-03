@@ -12,10 +12,7 @@ export interface SceneDirectorCommandFinishedInfo {
 }
 
 import { BusFactory, IAsyncMessageBus, IMessageBus } from "../bus/BusFactory";
-import {
-  SceneDirectorEventBusMessages,
-  SceneEventBusMessages,
-} from "../bus/events";
+import { SceneDirectorEventBusMessages } from "../bus/events";
 
 export class BaseSceneDirector {
   asyncBus: IAsyncMessageBus;

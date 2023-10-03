@@ -9,16 +9,21 @@ import {
   PhysicsShapeType,
   ArcRotateCamera,
   Mesh,
-  SceneLoader,
   CubeTexture,
   PBRMaterial,
   Texture,
   Animation,
 } from "@babylonjs/core";
+import { AsyncBus } from "../bus/AsyncBus";
+import { IMessageBus } from "../bus/BusFactory";
+import {
+  SceneDirectorEventBusMessages,
+  SceneEventBusMessages,
+} from "../bus/events";
+import { SceneDirectorCommand } from "../director/BaseSceneDirector";
+import { reviver } from "../utils/json";
 import { CustomLoadingScreen } from "./CustomLoadingScreen";
-import { loadTextures } from "../game/TextureLoader";
 import { MahjongTile } from "../game/MahjongTile";
-import { GLTFFileLoader } from "@babylonjs/loaders";
 
 export class NewScene {
   scene!: Scene;
@@ -28,11 +33,46 @@ export class NewScene {
   tiles!: MahjongTile[];
 
   constructor(
+    private _eventBus: IMessageBus,
     private engine: WebGPUEngine,
     private hk: HavokPlugin,
     private canvas: HTMLCanvasElement
   ) {
     this.initScene();
+  }
+
+  public registerBusEvents() {
+    const messagesToActions = this.getMessagesToActionsMapping();
+
+    this._eventBus.$on(
+      SceneDirectorEventBusMessages.SceneDirectorCommand,
+      (sceneDirectorCommandJson: string) => {
+        const sceneDirectorCommand = <SceneDirectorCommand>(
+          JSON.parse(sceneDirectorCommandJson, reviver)
+        );
+        const action = messagesToActions.get(sceneDirectorCommand.messageType);
+        console.log(
+          "BabylonJS Scene has received command",
+          sceneDirectorCommand
+        );
+        if (action) {
+          action.call(this, sceneDirectorCommand);
+        }
+      }
+    );
+  }
+
+  public unregisterBusEvents() {
+    this._eventBus.$off(SceneDirectorEventBusMessages.SceneDirectorCommand);
+  }
+
+  getMessagesToActionsMapping() {
+    const messagesToActions = new Map<string, (payload: any) => void>();
+    messagesToActions.set(
+      SceneDirectorEventBusMessages.CreateTiles,
+      this.CreateTiles
+    );
+    return messagesToActions;
   }
 
   private initScene() {
@@ -61,7 +101,7 @@ export class NewScene {
 
     this.CreateGround();
     this.CreateCamera();
-    this.CreateTiles();
+    //this.CreateTiles();
 
     const hemiLight = new HemisphericLight(
       "hemiLight",
@@ -83,17 +123,25 @@ export class NewScene {
     return scene;
   }
 
-  async CreateTiles(): Promise<void> {
+  CreateTiles(sceneDirectorCommand: SceneDirectorCommand): void {
+    console.log("aaa");
+    const amount = <number>sceneDirectorCommand.payload;
+
     const tiles = [];
-    for (let i = 0; i < 98; i++) {
-      const tile = await new MahjongTile(this.scene);
+    for (let i = 0; i < amount; i++) {
+      const tile = new MahjongTile(this.scene);
       tiles.push(tile);
     }
     this.tiles = tiles;
+    this.commandFinished(sceneDirectorCommand, tiles);
   }
 
-  public async positionTile(tile: MahjongTile, to: Vector3, speed: number): Promise<void> {
-    return new Promise((resolve, reject) => {;
+  public async positionTile(
+    tile: MahjongTile,
+    to: Vector3,
+    speed: number
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
       if (!tile) {
         reject("Tile no existeru");
       }
@@ -103,7 +151,7 @@ export class NewScene {
         "posAnim",
         "position",
         60,
-        Animation.ANIMATIONTYPE_VECTOR3,
+        Animation.ANIMATIONTYPE_VECTOR3
       );
       const keys = [];
 
@@ -122,7 +170,7 @@ export class NewScene {
       this.scene.beginAnimation(tile.meshes[0], 0, frames, false, speed, () => {
         resolve();
       });
-    })
+    });
   }
 
   CreateCamera(): void {
@@ -179,9 +227,6 @@ export class NewScene {
       this.scene
     );
 
-    // groundMaterial.invertNormalMapX = true;
-    // groundMaterial.invertNormalMapY = true;
-
     groundMaterial.useAmbientOcclusionFromMetallicTextureRed = true;
     groundMaterial.useRoughnessFromMetallicTextureGreen = true;
     groundMaterial.useMetallnessFromMetallicTextureBlue = true;
@@ -197,32 +242,17 @@ export class NewScene {
     ground.material = groundMaterial;
   }
 
-  createABunchOfBalls(): void {
-    const cols = 4;
-    const height = 250;
-    const totalBalls = (cols + 1) * height;
-
-    for (let i = 0 - cols; i < cols + 1; i++) {
-      for (let j = 1; j < height; j++) {
-        this.spawnBall(i, j, 0);
-      }
-    }
+  // helper methods
+  emitCommand(name: SceneEventBusMessages, payload?: any) {
+    console.log("BabylonJS Scene is sending command", name, payload);
   }
 
-  spawnBall(x: number, y: number, z: number) {
-    const ball = MeshBuilder.CreateSphere(
-      "ball",
-      { diameter: 0.5 },
-      this.scene
+  commandFinished(sceneDirectorCommand: SceneDirectorCommand, payload?: any) {
+    console.log(
+      "BabylonJS Scene has finished command",
+      sceneDirectorCommand.id,
+      payload
     );
-    const randomness = 0.1;
-    ball.position = new Vector3(x, y, z);
-    ball.position.x += Math.random() * randomness;
-    ball.position.y += Math.random() * randomness;
-    ball.position.z += Math.random() * randomness;
-    const ballAggregate = new PhysicsAggregate(ball, PhysicsShapeType.SPHERE, {
-      mass: 1,
-      restitution: 0.1,
-    });
+    AsyncBus.commandFinished(this._eventBus, sceneDirectorCommand, payload);
   }
 }

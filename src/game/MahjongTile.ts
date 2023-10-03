@@ -5,10 +5,6 @@ import {
   PBRMaterial,
   Texture,
   SceneLoader,
-  GlowLayer,
-  MeshUVSpaceRenderer,
-  DecalMapConfiguration,
-  Color3,
 } from "@babylonjs/core";
 import { GLTFFileLoader } from "@babylonjs/loaders";
 
@@ -96,9 +92,9 @@ export class MahjongTile {
   }
 }
 
-const getPin8 = (): string => {
-  return "./textures/tiles/Pin8.png";
-};
+// const getPin8 = (): string => {
+//   return "./textures/tiles/Pin8.png";
+// };
 
 const getRandomTexturePath = (): string => {
   return `./textures/tiles/${
@@ -144,4 +140,4 @@ const textureNames = [
   "Sou9",
   "Ton",
 ];
-const textures: { [key: string]: any } = {};
+// const textures: { [key: string]: any } = {};

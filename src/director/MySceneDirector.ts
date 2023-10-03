@@ -6,7 +6,7 @@ import {
 import { BaseSceneDirector } from "./BaseSceneDirector";
 
 export class MySceneDirector extends BaseSceneDirector {
-  private _selectedMarbleName = ref("");
+  private _selectedTileName = ref("");
 
   constructor() {
     super();
@@ -18,15 +18,15 @@ export class MySceneDirector extends BaseSceneDirector {
   // and move these two methods to BaseSceneDirector
   // and call registerSceneEvents(messageToActionMappings)
   private registerSceneEvents() {
-    this.asyncBus.$on(SceneEventBusMessages.MarbleSelected, (name: string) => {
-      console.log("Marble selected", name);
-      this._selectedMarbleName.value = name;
+    this.asyncBus.$on(SceneEventBusMessages.TileSelected, (name: string) => {
+      console.log("Tile selected", name);
+      this._selectedTileName.value = name;
     });
   }
 
   // unregister your events here
   public unregisterSceneEvents() {
-    this.asyncBus.$off(SceneEventBusMessages.MarbleSelected);
+    this.asyncBus.$off(SceneEventBusMessages.TileSelected);
   }
 
   //
@@ -39,16 +39,16 @@ export class MySceneDirector extends BaseSceneDirector {
     return retvalue;
   }
 
-  async clearMarbles() {
-    void this.asyncCommand(SceneDirectorEventBusMessages.ClearMarbles, {});
+  async createTiles(amount: number) {
+    void this.asyncCommand(SceneDirectorEventBusMessages.CreateTiles, amount);
   }
 
-  async addMarble(name: string) {
-    void this.asyncCommand(SceneDirectorEventBusMessages.AddMarble, name);
-  }
+  // async addMarble(name: string) {
+  //   void this.asyncCommand(SceneDirectorEventBusMessages.AddMarble, name);
+  // }
 
   // Vue reactive stuff
   useSelectedMarbleName() {
-    return this._selectedMarbleName;
+    return this._selectedTileName;
   }
 }
