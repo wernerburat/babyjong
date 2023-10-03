@@ -9,6 +9,7 @@
       <p ref="percentLoaded" id="percentLoaded">25%</p>
     </div>
     <canvas ref="bjsCanvas"></canvas>
+    <button @click="debug">debug</button>
   </div>
 </template>
 
@@ -40,6 +41,11 @@ onMounted(() => {
     new NewScene(engine, hk, bjsCanvas.value!);
   });
 });
+
+const debug = () => {
+  // Get the tiles from the scene:
+  console.log("debug");
+};
 </script>
 
 <style scoped>

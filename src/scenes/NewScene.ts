@@ -24,6 +24,7 @@ export class NewScene {
   loadingScreen!: CustomLoadingScreen;
   camera!: ArcRotateCamera;
   cameraTarget!: Mesh;
+  public tiles!: MahjongTile[];
 
   constructor(
     private engine: WebGPUEngine,
@@ -55,7 +56,7 @@ export class NewScene {
 
     this.CreateGround();
     this.CreateCamera();
-    const tile = new MahjongTile(scene);
+    this.CreateTiles();
 
     const hemiLight = new HemisphericLight(
       "hemiLight",
@@ -71,10 +72,15 @@ export class NewScene {
     );
 
     scene.environmentTexture = envTex;
-    scene.createDefaultSkybox(envTex, true, 1000);
+    scene.createDefaultSkybox(envTex, true, 1000, 0.1);
 
     this.engine.hideLoadingUI();
     return scene;
+  }
+
+  async CreateTiles(): Promise<void> {
+    const tiles = [];
+    const tile = new MahjongTile(this.scene);
   }
 
   CreateCamera(): void {
@@ -111,7 +117,7 @@ export class NewScene {
   CreateGround(): void {
     const ground = MeshBuilder.CreateGround(
       "ground",
-      { width: 10, height: 10 },
+      { width: 3, height: 3 },
       this.scene
     );
     const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, {

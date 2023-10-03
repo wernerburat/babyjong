@@ -15,7 +15,7 @@ import { GLTFFileLoader } from "@babylonjs/loaders";
 export class MahjongTile {
   private tile!: Mesh;
   private scene: Scene;
-  private meshes: Mesh[] = [];
+  public meshes: Mesh[] = [];
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -34,35 +34,39 @@ export class MahjongTile {
     const tileFace = meshes[2] as Mesh;
     const tileFaceBackground = tileFace.clone("tileFaceBackground");
 
-    this.meshes.push(meshes[0] as Mesh);
-    this.meshes.push(meshes[1] as Mesh);
-    this.meshes.push(meshes[2] as Mesh);
-    this.meshes.push(tileFaceBackground as Mesh);
+    this.meshes.push(tileMesh); // Tile borders / Exterior (Root)
+    this.meshes.push(tileFace); // Tile face (front)
+    this.meshes.push(meshes[2] as Mesh); // Rest
+    this.meshes.push(tileFaceBackground as Mesh); // Cloned Tile Face for BG
     const material = new PBRMaterial("tileMaterial", this.scene);
 
+    // Set the texture path
     const texture = new Texture(
       getRandomTexturePath(),
       this.scene,
       true,
-      false
+      false // No invert Y
     );
 
+    // Tile face texture
     texture.wAng = Math.PI / 2;
     texture.invertY;
     const factor = 0.965;
     texture.uScale = 4.6 * factor;
     texture.vScale = 4.1 * factor;
     texture.uOffset = 0.81; // Left-Right
-    texture.vOffset = 0.522;
+    texture.vOffset = 0.522; // Up-Down
     texture.hasAlpha = true;
 
+    // Tile face material
     material.albedoTexture = texture;
     material.metallic = 0;
-
     tileFace.material = material;
 
+    // Position tile's Root
     tileMesh.position.y = 0.2;
     tileMesh.rotate(Vector3.Left(), -Math.PI / 2);
+    this.tile = tileMesh;
   }
 
   public setFrontTexture(): void {
@@ -86,6 +90,10 @@ export class MahjongTile {
 
   public getMesh(): Mesh {
     return this.tile;
+  }
+
+  public setPosition(position: Vector3): void {
+    this.tile.position = position;
   }
 }
 
